@@ -1,0 +1,104 @@
+## Bestanden negeren
+Het zal niet nodig zijn om alle bestanden in een projectmap bij te houden via Git. Zo is het bijvoorbeeld geen goed idee om een `node_modules` map te tracken in je repository. Ook verborgen systeembestanden, zoals `.DS_Store` hebben geen enkel nut in een repository.
+
+Initialiseer je map als een node project, en koppel bijvoorbeeld webpack aan dit project:
+
+```bash
+$ npm init -y
+$ npm install webpack --dev
+```
+
+We zullen nu "per ongeluk" `node_modules` committen, en kijken om dit nadien recht te zetten.
+
+```bash
+$ git add .
+$ git commit -m "initial project"
+[master 0ead6d0] initial project
+ 2435 files changed, 385719 insertions(+)
+ create mode 120000 node_modules/.bin/acorn
+ create mode 120000 node_modules/.bin/browserslist
+ create mode 120000 node_modules/.bin/terser
+ ...
+ create mode 100644 node_modules/yocto-queue/license
+ create mode 100644 node_modules/yocto-queue/package.json
+ create mode 100644 node_modules/yocto-queue/readme.md
+ create mode 100644 package-lock.json
+ create mode 100644 package.json
+
+ ```
+
+### Bestanden wissen
+
+Je hebt nu het volledige project, inclusief de `node_modules` toegevoegd aan je git repository.
+
+Dit is overkill, het is niet nodig om de volledige dependency tree mee op te slaan in je git repository. We zullen deze fout nu rechtzetten:
+
+	$ git rm -r --cached node_modules/
+	rm 'node_modules/.bin/acorn'
+	rm 'node_modules/.bin/browserslist'
+	rm 'node_modules/.bin/terser'
+	rm 'node_modules/.bin/webpack'
+	rm 'node_modules/@types/eslint-scope/LICENSE'
+	rm 'node_modules/@types/eslint-scope/README.md'
+
+	...
+
+De --cached optie zorgt ervoor dat de file gewist word uit de repository index, maar wel blijft staan in jouw filesysteem.
+
+Een git status geeft nu het volgende resultaat:
+
+	$ git status
+	# On branch master
+	# Changes to be committed:
+	#   (use "git restore --staged <file>..." to unstage)
+	#
+	#	deleted:    node_modules/.bin/acorn
+	#	deleted:    node_modules/.bin/browserslist
+	#	deleted:    node_modules/.bin/terser
+	#	deleted:    node_modules/.bin/webpack
+	#	deleted:    node_modules/@types/eslint-scope/LICENSE
+	#	deleted:    node_modules/@types/eslint-scope/README.md
+	...
+
+Add & commit nu deze deletes, door de flag -A te gebruiken bij je add:
+
+	$ git add -A .
+	$ git commit -m "removed node_modules folder"
+	On branch master
+	nothing to commit, working tree clean
+
+### Bestanden & mappen verwijderen uit je volledige historiek
+
+We hebben zopas een commit aangemaakt, waarin deze `node_modules` opnieuw verwijderd worden. Er is echter nog steeds een commit waarin deze `node_modules` wél aanwezig zijn, wat onze repository onnodig groot maakt. Indien je mappen of bestanden wil verwijderen uit de volledige historiek van je project, dan moet je nog een stap verder gaan.
+
+Via het git `filter-branch` commando kun je de git historiek aanpassen. Om onze `node_modules` map te wissen, doen we het volgende:
+
+	$ git filter-branch --tree-filter 'rm -rf node_modules' HEAD
+	WARNING: git-filter-branch has a glut of gotchas generating mangled history
+	 rewrites.  Hit Ctrl-C before proceeding to abort, then use an
+	 alternative filtering tool such as 'git filter-repo'
+	 (https://github.com/newren/git-filter-repo/) instead.  See the
+	 filter-branch manual page for more details; to squelch this warning,
+	 set FILTER_BRANCH_SQUELCH_WARNING=1.
+	Proceeding with filter-branch...
+
+
+De map wordt gewist op je filesysteem én in de historiek. Let op, wanneer je via npm opnieuw de `node_modules` koppelt, kun je ze per ongeluk opnieuw adden aan de historiek, wat niet de bedoeling is. We zullen dit vermijden met behulp van een `.gitignore` bestand.
+
+### .gitignore
+We zullen nu specifieren welke files we in de toekomst niet meer willen tracken. Dit kan mbv een `.gitignore` file. Dit is een tekstbestand in je repository dat specifieert welke bestanden en mappen genegeerd mogen worden door git.
+
+Maak een nieuw bestand aan met de naam `.gitignore` in de root van je repository. Geef dit de volgende inhoud:
+
+	.DS_Store
+	node_modules/
+
+Dit zorgt ervoor dat het bestand `.DS_Store` en de map `node_modules` (& alle submappen van `node_modules` en submappen met deze naam) genegeerd worden in de toekomst.
+
+Add en commit dit bestand, zodat dit mee opgenomen wordt in je repository.
+
+	$ git add -A .
+	$ git commit -m "added .gitignore"
+
+In de praktijk zal je als één van je eerste bestanden zo'n `.gitignore` bestand aanmaken. Zo vermijd je dat je repository "vervuild" wordt met onnodige bestanden, en vermijd je ingrijpende acties zoals het verwijderen van mappen & bestanden uit de historiek.
+Voor een lijst van nuttige .gitignore files kan je hier terecht: https://github.com/github/gitignore
